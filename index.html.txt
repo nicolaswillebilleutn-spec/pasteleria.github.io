@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pastelería - Calculadora Dinámica</title>
+  <style>
+    :root{
+      --rosa:#ffd6e8;
+      --rosa-2:#f7a6cf;
+      --bg:#fff5f8;
+      --card:#fff;
+      --accent:#d46ba3;
+      --verde:#6bbf9b;
+      --gris:#6b6b6b;
+      --sombra: 0 8px 20px rgba(0,0,0,0.07);
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:var(--bg); margin:0; padding:24px; color:#333}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .logo{width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,var(--rosa),var(--rosa-2));display:flex;align-items:center;justify-content:center;box-shadow:var(--sombra)}
+    .logo svg{width:40px;height:40px}
+    h1{font-size:20px;margin:0;color:var(--accent)}
+    p.lead{margin:0;color:var(--gris)}
+
+    .container{display:grid;grid-template-columns:1fr 420px;gap:20px;align-items:start}
+    .card{background:var(--card);border-radius:14px;padding:16px;box-shadow:var(--sombra)}
+
+    label{font-size:13px;color:var(--gris);display:block;margin-bottom:6px}
+    input[type='text'], input[type='number'], select{width:100%;padding:10px;border-radius:10px;border:1px solid #eee;background:#fff}
+    .row{display:flex;gap:10px}
+    .col{flex:1}
+    button{background:var(--accent);color:#fff;border:none;padding:10px 12px;border-radius:10px;cursor:pointer}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid #ffd6e8}
+    button.small{padding:6px 8px;font-size:13px}
+
+    .ingrediente-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+    .ingrediente-row input{padding:8px;border-radius:8px;border:1px solid #f0e7ef}
+    .ingrediente-row .mini{width:110px}
+
+    .receta-list{display:flex;flex-direction:column;gap:10px}
+    .receta-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;background:linear-gradient(180deg,#fff,#fff);border:1px solid #fff3f7}
+    .receta-item h3{margin:0;font-size:16px;color:var(--accent)}
+    .receta-item small{color:var(--gris)}
+
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px;border-bottom:1px dashed #f0dbe6;text-align:left}
+    th{background:transparent}
+
+    footer{margin-top:18px;text-align:center;color:var(--gris);font-size:13px}
+
+    @media(max-width:980px){.container{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo" aria-hidden>
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2c2.8 0 4.8 1.8 5 4.4 0 2.9-3.5 6.6-5 8-1.5-1.4-5-5.1-5-8C7.2 3.8 9.2 2 12 2z" fill="#fff" opacity=".95"/>
+        <circle cx="12" cy="16" r="3" fill="#fff" opacity=".9"/>
+      </svg>
+    </div>
+    <div>
+      <h1>Pastelería — Calculadora</h1>
+      <p class="lead">Cargá recetas, calculá cantidades, costos y ganancia. Fácil y bonito.</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <div class="card">
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px">
+          <div style="flex:1">
+            <label>Nombre de la receta</label>
+            <input id="nombreReceta" type="text" placeholder="Ej: Medialunas con dulce">
+          </div>
+          <div style="width:120px">
+            <label>Rinde (unidades)</label>
+            <input id="rindeBase" type="number" min="1" placeholder="12">
+          </div>
+        </div>
+
+        <div style="margin-top:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+          <label style="margin:0">Ingredientes</label>
+          <div style="display:flex;gap:8px">
+            <button class="small ghost" id="agregarBtn">+ fila</button>
+            <button class="small" id="guardarBtn">Guardar receta</button>
+          </div>
+        </div>
+
+        <div id="listaIngredientes"></div>
+
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="ghost" id="limpiarBtn">Limpiar formulario</button>
+          <div style="flex:1"></div>
+          <button id="exportBtn" class="small ghost">Exportar JSON</button>
+          <button id="importBtn" class="small ghost">Importar JSON</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <label>Buscador</label>
+        <input id="buscador" type="text" placeholder="Buscar recetas por nombre...">
+
+        <div class="receta-list" id="recetasRender" style="margin-top:12px"></div>
+      </div>
+
+    </section>
+
+    <aside>
+      <div class="card">
+        <label>Ver costos / ventas</label>
+        <select id="selectCostos"></select>
+        <div id="costosRender" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3 style="margin:0 0 8px 0">Prueba rápida</h3>
+        <p style="margin:0 0 12px 0;color:var(--gris)">Usá las recetas de ejemplo o cargá las tuyas.</p>
+        <button id="resetDemo" class="small ghost">Cargar ejemplos</button>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    Made with ♥ — versión demo
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Datos iniciales
+      let recetas = JSON.parse(localStorage.getItem('recetas')) || [
+        {
+          nombre: 'Cookies de Vainilla',
+          rinde: 12,
+          ingredientes: [
+            { nombre: 'Harina', cantidad: 200, unidad: 'g', precioPaquete: 1200, cantidadPaquete: 1000 },
+            { nombre: 'Manteca', cantidad: 100, unidad: 'g', precioPaquete: 800, cantidadPaquete: 250 },
+            { nombre: 'Azúcar', cantidad: 80, unidad: 'g', precioPaquete: 200, cantidadPaquete: 1000 }
+          ]
+        },
+        {
+          nombre: 'Muffins de Chocolate',
+          rinde: 6,
+          ingredientes: [
+            { nombre: 'Harina', cantidad: 150, unidad: 'g', precioPaquete: 1200, cantidadPaquete: 1000 },
+            { nombre: 'Cacao', cantidad: 30, unidad: 'g', precioPaquete: 300, cantidadPaquete: 250 },
+            { nombre: 'Huevos', cantidad: 2, unidad: 'u', precioPaquete: 120, cantidadPaquete: 6 }
+          ]
+        }
+      ];
+
+      let editIndex = null;
+
+      // Elementos
+      const listaIngredientes = document.getElementById('listaIngredientes');
+      const recetasRender = document.getElementById('recetasRender');
+      const buscador = document.getElementById('buscador');
+      const selectCostos = document.getElementById('selectCostos');
+
+      // Helpers
+      const actualizarStorage = () => localStorage.setItem('recetas', JSON.stringify(recetas));
+
+      const crearFilaIngrediente = (ing = {}) => {
+        const row = document.createElement('div');
+        row.className = 'ingrediente-row';
+
+        row.innerHTML = `
+          <input class="col ing-nombre" placeholder="Ingrediente" value="${ing.nombre || ''}">
+          <input class="mini ing-cant" type="number" placeholder="Cant." value="${ing.cantidad || ''}">
+          <input class="mini ing-unidad" placeholder="unidad" value="${ing.unidad || ''}">
+          <input class="mini ing-precio-pack" type="number" placeholder="Precio pack" value="${ing.precioPaquete || ''}">
+          <input class="mini ing-cant-pack" type="number" placeholder="Cant. pack" value="${ing.cantidadPaquete || ''}">
+          <button class="small ghost" title="Eliminar fila">✖</button>
+        `;
+
+        // eliminar fila
+        row.querySelector('button').addEventListener('click', () => row.remove());
+
+        return row;
+      };
+
+      // UI actions
+      const agregarIngrediente = () => listaIngredientes.appendChild(crearFilaIngrediente());
+
+      const limpiarFormulario = () => {
+        const nombreEl = document.getElementById('nombreReceta');
+        const rindeEl = document.getElementById('rindeBase');
+        if (nombreEl) nombreEl.value = '';
+        if (rindeEl) rindeEl.value = '';
+        listaIngredientes.innerHTML = '';
+        agregarIngrediente();
+        editIndex = null;
+      };
+
+      const guardarReceta = () => {
+        const nombreEl = document.getElementById('nombreReceta');
+        const rindeEl = document.getElementById('rindeBase');
+        const nombre = (nombreEl && nombreEl.value || '').trim();
+        const rinde = Number(rindeEl && rindeEl.value) || 0;
+
+        if (!nombre) return alert('Pone nombre de receta');
+        if (rinde <= 0) return alert('Pone un rinde válido');
+
+        const filas = Array.from(document.querySelectorAll('.ingrediente-row'));
+        const ingredientes = filas.map(f => {
+          const nombreIngEl = f.querySelector('.ing-nombre');
+          const nombreIng = (nombreIngEl && nombreIngEl.value || '').trim();
+          if (!nombreIng) return null;
+          const cantEl = f.querySelector('.ing-cant');
+          const unidadEl = f.querySelector('.ing-unidad');
+          const precioPackEl = f.querySelector('.ing-precio-pack');
+          const cantPackEl = f.querySelector('.ing-cant-pack');
+
+          return {
+            nombre: nombreIng,
+            cantidad: Number(cantEl && cantEl.value) || 0,
+            unidad: unidadEl && unidadEl.value || '',
+            precioPaquete: Number(precioPackEl && precioPackEl.value) || 0,
+            cantidadPaquete: Number(cantPackEl && cantPackEl.value) || 0
+          };
+        }).filter(Boolean);
+
+        if (ingredientes.length === 0) return alert('Agregá al menos un ingrediente');
+
+        if (editIndex !== null) {
+          recetas[editIndex] = { nombre, rinde, ingredientes };
+          editIndex = null;
+        } else {
+          recetas.push({ nombre, rinde, ingredientes });
+        }
+
+        actualizarStorage();
+        renderRecetas();
+        cargarSelectCostos();
+        limpiarFormulario();
+      };
+
+      const cargarFormularioParaEditar = (i) => {
+        const r = recetas[i];
+        if (!r) return alert('Receta no encontrada');
+        editIndex = i;
+        const nombreEl = document.getElementById('nombreReceta');
+        const rindeEl = document.getElementById('rindeBase');
+        if (nombreEl) nombreEl.value = r.nombre;
+        if (rindeEl) rindeEl.value = r.rinde;
+        listaIngredientes.innerHTML = '';
+        r.ingredientes.forEach(ing => listaIngredientes.appendChild(crearFilaIngrediente(ing)));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      const eliminarReceta = (i) => {
+        if (!confirm('¿Querés borrar esta receta?')) return;
+        recetas.splice(i, 1);
+        actualizarStorage();
+        renderRecetas();
+        cargarSelectCostos();
+      };
+
+      const calcular = (i, cant) => {
+        const receta = recetas[i];
+        const cantidadSolicitada = Number(cant) || 0;
+        const factor = receta.rinde > 0 ? (cantidadSolicitada / receta.rinde) : 0;
+        let html = '<table><tr><th>Ingrediente</th><th>Cantidad</th></tr>';
+        receta.ingredientes.forEach(ing => {
+          const cantidadFinal = ing.cantidad * factor;
+          html += `<tr><td>${ing.nombre}</td><td>${cantidadFinal.toFixed(2)} ${ing.unidad}</td></tr>`;
+        });
+        html += '</table>';
+        const calcEl = document.getElementById(`calc-${i}`);
+        if (calcEl) calcEl.innerHTML = html;
+      };
+
+      const renderRecetas = () => {
+        const term = ((buscador && buscador.value) || '').toLowerCase();
+        recetasRender.innerHTML = '';
+        recetas
+          .filter(r => r.nombre.toLowerCase().includes(term))
+          .forEach((r, i) => {
+            const item = document.createElement('div');
+            item.className = 'receta-item';
+            item.innerHTML = `
+              <div>
+                <h3>${r.nombre}</h3>
+                <small>Rinde: ${r.rinde} unidades</small>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="number" placeholder="Cant." style="width:80px;padding:8px;border-radius:8px;border:1px solid #f0e7ef" oninput="this.nextElementSibling.disabled = !this.value || this.value<=0;">
+                <button class="small" onclick="calcular(${i}, this.previousElementSibling.value)">Calcular</button>
+                <button class="small ghost" onclick="cargarFormularioParaEditar(${i})">Editar</button>
+                <button class="small" style="background:#ff6b6b" onclick="eliminarReceta(${i})">Borrar</button>
+              </div>
+              <div id="calc-${i}" style="margin-top:8px"></div>
+            `;
+            recetasRender.appendChild(item);
+          });
+      };
+
+      const cargarSelectCostos = () => {
+        selectCostos.innerHTML = '<option value="">Elegir receta...</option>';
+        recetas.forEach((r, i) => selectCostos.innerHTML += `<option value="${i}">${r.nombre}</option>`);
+      };
+
+      const mostrarCostos = () => {
+        const i = selectCostos.value;
+        const out = document.getElementById('costosRender');
+        if (i === '') { if (out) out.innerHTML = ''; return; }
+        const r = recetas[i];
+        let costoTotal = 0;
+        let html = `<h3>${r.nombre}</h3><table><tr><th>Ingrediente</th><th>Precio pack</th><th>Cant. pack</th><th>Cant. base</th><th>Costo</th></tr>`;
+        r.ingredientes.forEach(ing => {
+          const costoUnit = ing.cantidadPaquete > 0 ? (ing.precioPaquete / ing.cantidadPaquete) : 0;
+          const subtotal = costoUnit * ing.cantidad;
+          costoTotal += subtotal;
+          html += `<tr><td>${ing.nombre}</td><td>$${Number(ing.precioPaquete).toFixed(2)}</td><td>${ing.cantidadPaquete} ${ing.unidad}</td><td>${ing.cantidad} ${ing.unidad}</td><td>$${subtotal.toFixed(2)}</td></tr>`;
+        });
+        html += `</table><h3>Costo total: $${costoTotal.toFixed(2)}</h3>`;
+        html += `<div style="display:flex;gap:8px;align-items:center;margin-top:8px"><input id="venta" type="number" placeholder="Precio de venta"><button class="small" id="calcGanBtn">Calcular ganancia</button></div><div id="ganancia" style="margin-top:8px"></div>`;
+        if (out) out.innerHTML = html;
+        // attach event for calcGanBtn
+        setTimeout(() => {
+          const btn = document.getElementById('calcGanBtn');
+          if (btn) btn.addEventListener('click', () => calcGanancia(costoTotal));
+        }, 50);
+      };
+
+      const calcGanancia = (costo) => {
+        const ventaEl = document.getElementById('venta');
+        const venta = Number(ventaEl && ventaEl.value) || 0;
+        const gan = venta - costo;
+        const out = document.getElementById('ganancia');
+        if (out) out.innerHTML = `<h3>Ganancia: $${gan.toFixed(2)}</h3>`;
+      };
+
+      // demo helpers
+      const cargarEjemplos = () => {
+        recetas = [
+          {
+            nombre: 'Cookies de Vainilla', rinde: 12,
+            ingredientes: [
+              { nombre: 'Harina', cantidad: 200, unidad: 'g', precioPaquete: 1200, cantidadPaquete: 1000 },
+              { nombre: 'Manteca', cantidad: 100, unidad: 'g', precioPaquete: 800, cantidadPaquete: 250 },
+              { nombre: 'Azúcar', cantidad: 80, unidad: 'g', precioPaquete: 200, cantidadPaquete: 1000 }
+            ]
+          },
+          { nombre: 'Muffins', rinde: 6, ingredientes: [ { nombre: 'Harina', cantidad: 150, unidad: 'g', precioPaquete: 1200, cantidadPaquete: 1000 }, { nombre: 'Cacao', cantidad: 30, unidad: 'g', precioPaquete: 300, cantidadPaquete: 250 }, { nombre: 'Huevos', cantidad: 2, unidad: 'u', precioPaquete: 120, cantidadPaquete: 6 } ] }
+        ];
+        actualizarStorage(); renderRecetas(); cargarSelectCostos();
+      };
+
+      const exportJSON = () => {
+        const data = JSON.stringify(recetas, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'recetas.json'; a.click(); URL.revokeObjectURL(url);
+      };
+
+      const importJSON = () => {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = 'application/json';
+        input.addEventListener('change', e => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = ev => {
+            try { const data = JSON.parse(ev.target.result); if (Array.isArray(data)) { recetas = data; actualizarStorage(); renderRecetas(); cargarSelectCostos(); alert('Importado OK'); } else alert('JSON inválido'); }
+            catch(err){ alert('Error al leer JSON'); }
+          };
+          reader.readAsText(file);
+        });
+        input.click();
+      };
+
+      // Attach events
+      const agregarBtn = document.getElementById('agregarBtn');
+      const guardarBtn = document.getElementById('guardarBtn');
+      const limpiarBtn = document.getElementById('limpiarBtn');
+      const resetDemoBtn = document.getElementById('resetDemo');
+      const exportBtn = document.getElementById('exportBtn');
+      const importBtn = document.getElementById('importBtn');
+
+      if (agregarBtn) agregarBtn.addEventListener('click', agregarIngrediente);
+      if (guardarBtn) guardarBtn.addEventListener('click', guardarReceta);
+      if (limpiarBtn) limpiarBtn.addEventListener('click', limpiarFormulario);
+      if (resetDemoBtn) resetDemoBtn.addEventListener('click', cargarEjemplos);
+      if (exportBtn) exportBtn.addEventListener('click', exportJSON);
+      if (importBtn) importBtn.addEventListener('click', importJSON);
+      if (buscador) buscador.addEventListener('input', renderRecetas);
+      if (selectCostos) selectCostos.addEventListener('change', mostrarCostos);
+
+      // init
+      if (!listaIngredientes.children.length) agregarIngrediente();
+      renderRecetas();
+      cargarSelectCostos();
+
+      // make some functions accessible from inline handlers
+      window.calcular = calcular;
+      window.cargarFormularioParaEditar = cargarFormularioParaEditar;
+      window.eliminarReceta = eliminarReceta;
+      window.calcGanancia = calcGanancia;
+    });
+  </script>
+</body>
+</html>
